@@ -43,3 +43,19 @@ type FailedTask struct {
 	FailedAt time.Time `json:"failed_at"`
 	Error   string    `json:"error"`
 }
+
+type Metrics struct {
+	TotalProcessed int64 `json:"total_processed"`
+	TotalFailed    int64 `json:"total_failed"`
+	TotalRetries   int64 `json:"total_retries"`
+	QueueSize      int64 `json:"queue_size"`
+	ActiveWorkers  int64 `json:"active_workers"`
+}
+
+type EnhancedMetrics struct {
+	Metrics
+	SuccessRate      float64 `json:"success_rate"`
+	DelayedQueueSize int64   `json:"delayed_queue_size"`
+	DeadLetterSize   int64   `json:"dead_letter_size"`
+	TotalSubmitted   int64   `json:"total_submitted"`
+}
