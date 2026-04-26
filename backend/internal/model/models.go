@@ -30,3 +30,16 @@ type TaskEvent struct {
 	Detail    string    `json:"detail"`
 	Timestamp time.Time `json:"timestamp"`
 }
+
+type WorkerState struct {
+	WorkerID int    `json:"worker_id"`
+	Status   string `json:"status"` // idle, busy, offline
+	TaskID   string `json:"task_id,omitempty"`
+	StartedAt time.Time `json:"started_at,omitempty"`
+}
+
+type FailedTask struct {
+	Task    Task 	`json:"task"`
+	FailedAt time.Time `json:"failed_at"`
+	Error   string    `json:"error"`
+}
