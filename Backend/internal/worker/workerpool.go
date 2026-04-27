@@ -15,10 +15,10 @@ import (
 
 type WorkerPool struct {
 	queue  *queue.PriorityQueue
-	//executor *Executor
+	executor *Executor
 	workercount int
 	pollInterval time.Duration
-	activeCount atomic.Int32
+	activeCount atomic.Int64
 	wg sync.WaitGroup
 	workerState *storage.WorkerStateStore
 }
@@ -43,7 +43,7 @@ func NewWorkerPool(
 func (wp *WorkerPool) Start(ctx context.Context) {
 	for i := 0; i < wp.workercount; i++ {
 		wp.wg.Add(1)
-		wp.workerState.Set(ctx, WorkerIdleState(i))
+		wp.workerState.Set(ctx, storage.WorkerIdleState(i))
 		go wp.worker(ctx, i)
 	}
 	log.Printf("Worker pool started with %d workers", wp.workercount)
@@ -56,7 +56,7 @@ func (wp *WorkerPool) Wait() {
 }
 
 // current active workers
-func (wp *WorkerPool) ActiveWorkers() int32 {
+func (wp *WorkerPool) ActiveWorkers() int64 {
 	return wp.activeCount.Load()
 }
 
@@ -90,7 +90,7 @@ func (wp *WorkerPool) worker(ctx context.Context, workerID int){
 		}
 
 		wp.activeCount.Add(1)
-		wp.executor.Execute(ctx, task, workerID)
+		wp.executor.Execute(ctx, workerID, task)
 		wp.activeCount.Add(-1)
 	}
 }

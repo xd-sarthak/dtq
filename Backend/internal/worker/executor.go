@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"math/rand"
-	"runtime/metrics"
 	"time"
 
 	"github.com/xd-sarthak/dtq/internal/model"
@@ -17,7 +16,7 @@ import (
 // core processing logic
 type Executor struct {
 	delayed *queue.DelayedScheduler
-	deadLetter *queue.DeadLetterQueue
+	deadLetter *storage.DeadLetterQueue
 	metrics *storage.MetricsStore
 	events *storage.EventStore
 	workerState *storage.WorkerStateStore
@@ -25,7 +24,7 @@ type Executor struct {
 
 func NewExecutor(
 	delayed *queue.DelayedScheduler,
-	deadLetter *queue.DeadLetterQueue,
+	deadLetter *storage.DeadLetterQueue,
 	metrics *storage.MetricsStore,
 	events *storage.EventStore,
 	workerState *storage.WorkerStateStore,
@@ -39,7 +38,7 @@ func NewExecutor(
 	}
 }
 
-func (e *Executor) Execute(ctx context.Context, workerID int, task model.Task) {
+func (e *Executor) Execute(ctx context.Context, workerID int, task *model.Task) {
 	log.Printf("Worker %d: Starting task %s (priority: %d, retries: %d)", workerID, task.ID, task.Priority, task.Retries)
 
 	// update worker state to busy
@@ -69,7 +68,7 @@ func (e *Executor) Execute(ctx context.Context, workerID int, task model.Task) {
 		//success
 		log.Printf("Worker %d: Task %s completed successfully in %v", workerID, task.ID, workDuration)
 		e.emitEvent(ctx, task.ID, "completed", workerID, fmt.Sprintf("Task %s completed successfully in %v", task.ID, workDuration))
-		if err := e.metrics.Increment(ctx); err != nil {
+		if err := e.metrics.IncrementProcessed(ctx); err != nil {
 			log.Printf("Failed to increment metrics: %v", err)
 		}
 	}
@@ -83,7 +82,7 @@ func (e *Executor) Execute(ctx context.Context, workerID int, task model.Task) {
 }
 
 // handle task failure with retry logic
-func (e *Executor) handleFailure(ctx context.Context, workerID int, task model.Task) {
+func (e *Executor) handleFailure(ctx context.Context, workerID int, task *model.Task) {
 	// retry with exponential backoff if retries are left
 	if task.Retries < task.MaxRetries {
 		task.Retries++
@@ -98,7 +97,7 @@ func (e *Executor) handleFailure(ctx context.Context, workerID int, task model.T
 			log.Printf("Failed to increment retry metrics: %v", err)
 		}
 
-		if err := e.delayed.Schedule(ctx, task, backoff); err != nil {
+		if err := e.delayed.Schedule(ctx, *task, backoff); err != nil {
 			log.Printf("Failed to schedule task %s for retry: %v", task.ID, err)
 		}
 
@@ -110,7 +109,7 @@ func (e *Executor) handleFailure(ctx context.Context, workerID int, task model.T
 		e.emitEvent(ctx, task.ID, "dead_lettered", workerID, fmt.Sprintf("Task %s has reached max retries and is moved to dead letter queue", task.ID))
 		
 		failtask := model.FailedTask{
-			Task: task,
+			Task: *task,
 			FailedAt: time.Now(),
 			Error: task.Error,
 		}
@@ -119,7 +118,7 @@ func (e *Executor) handleFailure(ctx context.Context, workerID int, task model.T
 			log.Printf("Failed to add task %s to dead letter queue: %v", task.ID, err)
 		}
 
-		if err := e.metrics.IncrementDeadLetters(ctx); err != nil {
+		if err := e.metrics.IncrementFailed(ctx); err != nil {
 			log.Printf("Failed to increment dead letter metrics: %v", err)
 		}
 	}
