@@ -151,6 +151,78 @@ func (h *APIHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "healthy"})
 }
 
+// recent system activity 
+func (h *APIHandler) RecentActivity(w http.ResponseWriter, r *http.Request) {
+	limit, _ := strconv.ParseInt(r.URL.Query().Get("limit"),10,64)
+	if limit <= 0 {
+		limit = 50
+	}
+	events,err := h.events.List(r.Context(), limit)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch recent activity"})
+		return
+	}
+	writeJSON(w, http.StatusOK, events)
+}
+
+// live runtime state of the queue
+func (h *APIHandler) RuntimeState(w http.ResponseWriter, r *http.Request){
+	states, err := h.workerState.GetAll(r.Context())
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch worker states"})
+		return
+	}
+	writeJSON(w, http.StatusOK, states) 
+}
+
+// peek into the queue to see pending tasks without modifying the queue state
+func (h *APIHandler) GetQueues(w http.ResponseWriter, r *http.Request){
+	ctx := r.Context()
+	ready, err := h.queuePeek.PeekReady(ctx, 20)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to peek ready queue"})
+		return
+	}
+
+	delayed, err := h.queuePeek.PeekDelayed(ctx, 20)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to peek delayed queue"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"ready": ready,
+		"delayed": delayed,
+	})
+}
+
+// get metrics
+func (h *APIHandler) GetEnhancedMetrics(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	queueSize,_ := h.queue.Size(ctx)
+	activeWorkers := h.pool.ActiveWorkers()
+	delayedSize,_ := h.queuePeek.DelayedSize(ctx)
+	deadLetterSize,_ := h.queuePeek.DeadLetterSize(ctx)
+
+	m,err := h.metrics.GetAugmentedMetrics(ctx, queueSize, activeWorkers, delayedSize, deadLetterSize)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to fetch metrics"})
+		return
+	}
+	writeJSON(w,http.StatusOK,m)
+}
+
+func (h *APIHandler) FlushData(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	keys := []string{
+		storage.KeyReady, storage.KeyDelayed, storage.KeyDeadLetter,
+		storage.KeyMetrics, storage.KeyWorkers, storage.KeyEvents,
+	}
+
+	for _, key := range keys {
+		h.redis.Del(ctx, key)
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": "all data flushed successfully"})
+}
 
 
 

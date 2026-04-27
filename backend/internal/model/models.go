@@ -59,3 +59,8 @@ type EnhancedMetrics struct {
 	DeadLetterSize   int64   `json:"dead_letter_size"`
 	TotalSubmitted   int64   `json:"total_submitted"`
 }
+
+type DelayedEntry struct {
+	Task      Task    `json:"task"`
+	ExecuteAt float64 `json:"execute_at"`
+}
