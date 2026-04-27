@@ -15,6 +15,9 @@ import (
 type WorkerStateStore struct {
 	client *redis.Client
 }
+func NewWorkerStateStore(client *redis.Client) *WorkerStateStore {
+	return &WorkerStateStore{client: client}
+}
 
 func WorkerIdleState(workerID int) model.WorkerState {
 	return model.WorkerState{
