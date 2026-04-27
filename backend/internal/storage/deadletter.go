@@ -24,7 +24,7 @@ func (dlq *DeadLetterQueue) Add(ctx context.Context, failedTask model.FailedTask
 		return fmt.Errorf("failed to marshal failed task: %w", err)
 	}
 
-	if err := dlq.client.LPush(ctx, "dead_letter_queue", data).Err(); err != nil {
+	if err := dlq.client.LPush(ctx, KeyDeadLetter, data).Err(); err != nil {
 		return fmt.Errorf("failed to push task to dead letter queue: %w", err)
 	}
 
@@ -33,7 +33,7 @@ func (dlq *DeadLetterQueue) Add(ctx context.Context, failedTask model.FailedTask
 
 // list returns the most recent failed tasks in the dead letter queue
 func (dlq *DeadLetterQueue) List(ctx context.Context, offset, count int64) ([]model.FailedTask, error) {
-	results, err := dlq.client.LRange(ctx, "dead_letter_queue", offset, offset+count-1).Result()
+	results, err := dlq.client.LRange(ctx, KeyDeadLetter, offset, offset+count-1).Result()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch dead letter tasks: %w", err)
 	}

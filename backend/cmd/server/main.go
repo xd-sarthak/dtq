@@ -43,7 +43,7 @@ func main() {
 	router := api.NewRouter(apiHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.ServerPort),
+		Addr:    fmt.Sprintf(":%s", cfg.ServerPort),
 		Handler: router,
 	}
 
@@ -56,7 +56,7 @@ func main() {
 	go pool.Start(ctx)
 
     go func(){
-		log.Printf("Server is running on port %d", cfg.ServerPort)
+		log.Printf("Server is running on port %s", cfg.ServerPort)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Failed to start server: %v", err)
 		}

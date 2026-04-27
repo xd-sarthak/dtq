@@ -19,22 +19,22 @@ func NewMetricsStore(client *redis.Client) *MetricsStore {
 
 // increment the count of processed tasks
 func (ms *MetricsStore) IncrementProcessed(ctx context.Context) error {
-	return ms.client.HIncrBy(ctx, "metrics", "processed_tasks", 1).Err()
+	return ms.client.HIncrBy(ctx, KeyMetrics, "processed", 1).Err()
 }
 
 // increment the count of failed tasks
 func (ms *MetricsStore) IncrementFailed(ctx context.Context) error {
-	return ms.client.HIncrBy(ctx, "metrics", "failed_tasks", 1).Err()
+	return ms.client.HIncrBy(ctx, KeyMetrics, "failed", 1).Err()
 }
 
 // retries count
 func (ms *MetricsStore) IncrementRetries(ctx context.Context) error {
-	return ms.client.HIncrBy(ctx, "metrics", "retries", 1).Err()
+	return ms.client.HIncrBy(ctx, KeyMetrics, "retries", 1).Err()
 }
 
 // submit count
 func (ms *MetricsStore) IncrementSubmitted(ctx context.Context) error {
-	return ms.client.HIncrBy(ctx, "metrics", "submitted_tasks", 1).Err()
+	return ms.client.HIncrBy(ctx, KeyMetrics, "submitted", 1).Err()
 }
 
 // get all metrics

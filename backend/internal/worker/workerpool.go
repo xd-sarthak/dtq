@@ -34,7 +34,7 @@ func NewWorkerPool(
 		queue: queue,
 		executor: executor,
 		workercount: workercount,
-		pollInterval: time.Duration(pollInterval)*time.Millisecond,
+		pollInterval: pollInterval,
 		workerState: workerState,
 	}
 }
